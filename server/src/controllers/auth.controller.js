@@ -72,7 +72,7 @@ export const refresh = asyncHandler(async (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 
-  return ok(res, { accessToken, user: { id: user._id, name: user.name, email: user.email } });
+  return ok(res, { accessToken,  refreshToken: newRefresh, user: { id: user._id, name: user.name, email: user.email } });
 });
 
 export const logout = asyncHandler(async (req, res) => {

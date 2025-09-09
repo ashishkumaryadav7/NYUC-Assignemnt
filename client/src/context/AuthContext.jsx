@@ -13,20 +13,38 @@ export function AuthProvider({ children }) {
     setUser(u || null);
   }, []);
 
-  const refresh = useCallback(async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
-      if (!res.ok) return setSession(null, null);
-      const data = await res.json();
-      setSession(data.data.accessToken, data.data.user);
-      return true;
-    } catch {
+ const refresh = useCallback(async () => {
+  const refreshToken = sessionStorage.getItem('refreshToken');
+  if (!refreshToken) {
+    setSession(null, null);
+    setLoading(false);
+    return false;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken })
+    });
+
+    if (!res.ok) {
       setSession(null, null);
       return false;
-    } finally {
-      setLoading(false); 
     }
-  }, [setSession]);
+
+    const data = await res.json();
+    // save access token and refresh token
+    setSession(data.data.accessToken, data.data.user, data.data.refreshToken);
+    return true;
+  } catch {
+    setSession(null, null);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+}, [setSession]);
+
 
 useEffect(() => {
   if (!accessToken) {

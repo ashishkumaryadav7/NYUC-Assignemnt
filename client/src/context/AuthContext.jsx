@@ -4,7 +4,6 @@ import BASE_URL from "../api/url";
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
-  // ✅ State + localStorage fallback for accessToken & user
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem("accessToken"));
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
@@ -13,31 +12,31 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const isAuthenticated = !!accessToken;
 
-  // ✅ Set session: accessToken + user in state & localStorage
+  // ✅ Set session in both state + localStorage
   const setSession = useCallback((token, u) => {
     if (token) {
-      setAccessToken(token);
       localStorage.setItem("accessToken", token);
+      setAccessToken(token);
     } else {
-      setAccessToken(null);
       localStorage.removeItem("accessToken");
+      setAccessToken(null);
     }
 
     if (u) {
-      setUser(u);
       localStorage.setItem("user", JSON.stringify(u));
+      setUser(u);
     } else {
-      setUser(null);
       localStorage.removeItem("user");
+      setUser(null);
     }
   }, []);
 
-  // ✅ Refresh accessToken using cookie (refresh token stored securely)
+  // ✅ Try to refresh accessToken using cookies
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`${BASE_URL}/auth/refresh`, {
         method: "POST",
-        credentials: "include", // 👈 cookie send karega
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -46,10 +45,9 @@ export function AuthProvider({ children }) {
       }
 
       const data = await res.json();
-      setSession(data.data.accessToken, data.data.user); // ✅ save access token + user info
+      setSession(data.data.accessToken, data.data.user);
       return true;
-    } catch (err) {
-      console.error("Refresh failed", err);
+    } catch {
       setSession(null, null);
       return false;
     } finally {
@@ -57,7 +55,7 @@ export function AuthProvider({ children }) {
     }
   }, [setSession]);
 
-  // ✅ On mount: if no accessToken, try refresh
+  // ✅ On mount, if no accessToken → call refresh
   useEffect(() => {
     if (!accessToken) {
       refresh();

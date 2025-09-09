@@ -1,11 +1,12 @@
 # Task Management App (MERN Stack)
 
 ## 📌 Assignment Details
-
-This project was built as part of a **Full-Stack MERN Assignment**.  
+This project was built as part of a **Full-Stack MERN Assignment** from **NYUC Technologies**.  
 It demonstrates authentication, CRUD operations, and dashboard management using the MERN stack.
 
-### Problem Statement
+---
+
+## 📌 Problem Statement
 
 Build a **Task Management App** where users can:
 
@@ -32,5 +33,3 @@ Build a **Task Management App** where users can:
 - **Backend:** Node.js + Express  
 - **Database:** MongoDB  
 - **Authentication:** JWT (Access & Refresh tokens)
-
-

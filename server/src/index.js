@@ -15,13 +15,18 @@ const app = express();
 app.set('trust proxy', 1);
 
 
-
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(
   cors({
-    origin: env.clientOrigin,
-    credentials: true
+    origin: function (origin, callback) {
+      if (!origin || env.clientOrigin.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
   })
 );
 app.use(express.json());

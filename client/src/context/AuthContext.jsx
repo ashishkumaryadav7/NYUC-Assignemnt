@@ -4,6 +4,7 @@ import BASE_URL from "../api/url";
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
+  // 1️⃣ Initialize state from localStorage
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem("accessToken"));
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
@@ -12,8 +13,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const isAuthenticated = !!accessToken;
 
-  // ✅ Set session in state + localStorage
-  const setSession = useCallback((token, u) => {
+  // 2️⃣ Set session in state + localStorage
+  const setSession = useCallback((token, u, refreshToken) => {
     if (token) {
       localStorage.setItem("accessToken", token);
       setAccessToken(token);
@@ -29,34 +30,49 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("user");
       setUser(null);
     }
+
+    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+    else localStorage.removeItem("refreshToken");
   }, []);
 
-  // ✅ Refresh access token (sirf cookies se)
+  // 3️⃣ Refresh token: cookie first, fallback localStorage
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      // Try cookie-based refresh first
+      let res = await fetch(`${BASE_URL}/auth/refresh`, {
         method: "POST",
-        credentials: "include", // 👈 cookie bhejega
+        credentials: "include", // cookie bhejega
       });
 
+      // Fallback: localStorage refresh token
       if (!res.ok) {
-        setSession(null, null);
-        return false;
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) {
+          setSession(null, null, null);
+          return false;
+        }
+
+        res = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
       }
 
       const data = await res.json();
-      // 👇 backend se accessToken + user save karo
-      setSession(data.data.accessToken, data.data.user);
+
+      // Save accessToken + user + refreshToken
+      setSession(data.data.accessToken, data.data.user, data.data.refreshToken);
       return true;
     } catch {
-      setSession(null, null);
+      setSession(null, null, null);
       return false;
     } finally {
       setLoading(false);
     }
   }, [setSession]);
 
-  // ✅ On mount, agar token nahi hai → refresh call
+  // 4️⃣ On mount: if no accessToken → refresh
   useEffect(() => {
     if (!accessToken) {
       refresh();

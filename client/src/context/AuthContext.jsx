@@ -12,8 +12,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const isAuthenticated = !!accessToken;
 
-  // ✅ Set session in both state + localStorage
-  const setSession = useCallback((token, u) => {
+  // ✅ Set session in state + localStorage
+  const setSession = useCallback((token, u, refreshToken) => {
     if (token) {
       localStorage.setItem("accessToken", token);
       setAccessToken(token);
@@ -29,33 +29,44 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("user");
       setUser(null);
     }
+
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    } else {
+      localStorage.removeItem("refreshToken");
+    }
   }, []);
 
-  // ✅ Try to refresh accessToken using cookies
+  // ✅ Refresh access token (cookie first → fallback to localStorage refreshToken)
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`${BASE_URL}/auth/refresh`, {
         method: "POST",
-        credentials: "include",
+        credentials: "include", // 👈 cookie try karega
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          refreshToken: localStorage.getItem("refreshToken") || null, // 👈 fallback
+        }),
       });
 
       if (!res.ok) {
-        setSession(null, null);
+        setSession(null, null, null);
         return false;
       }
 
       const data = await res.json();
-      setSession(data.data.accessToken, data.data.user);
+      // 👇 backend se access + refresh dono save karo
+      setSession(data.data.accessToken, data.data.user, data.data.refreshToken);
       return true;
     } catch {
-      setSession(null, null);
+      setSession(null, null, null);
       return false;
     } finally {
       setLoading(false);
     }
   }, [setSession]);
 
-  // ✅ On mount, if no accessToken → call refresh
+  // ✅ On mount, agar token nahi hai → refresh call
   useEffect(() => {
     if (!accessToken) {
       refresh();

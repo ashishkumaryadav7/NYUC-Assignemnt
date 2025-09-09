@@ -51,7 +51,7 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const refresh = asyncHandler(async (req, res) => {
-  const token = req.cookies?.[env.cookieName];
+  const token = req.cookies?.[env.cookieName] || req.body?.refreshToken;
   if (!token) return unauthorized(res, 'Missing refresh token');
 
   let payload;
@@ -66,15 +66,20 @@ export const refresh = asyncHandler(async (req, res) => {
   if (user.tokenVersion !== payload.tv) return unauthorized(res, 'Refresh token revoked');
 
   const accessToken = signAccessToken(user);
-  const newRefresh = signRefreshToken(user); 
+  const newRefresh = signRefreshToken(user);
 
   res.cookie(env.cookieName, newRefresh, {
     ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  return ok(res, { accessToken,  refreshToken: newRefresh, user: { id: user._id, name: user.name, email: user.email } });
+  return ok(res, {
+    accessToken,
+    refreshToken: newRefresh, // fallback ke liye bhej bhi de
+    user: { id: user._id, name: user.name, email: user.email },
+  });
 });
+
 
 export const logout = asyncHandler(async (req, res) => {
   const auth = req.headers.authorization || '';

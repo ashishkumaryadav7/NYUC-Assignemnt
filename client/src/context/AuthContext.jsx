@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
   const isAuthenticated = !!accessToken;
 
   // ✅ Set session in state + localStorage
-  const setSession = useCallback((token, u, refreshToken) => {
+  const setSession = useCallback((token, u) => {
     if (token) {
       localStorage.setItem("accessToken", token);
       setAccessToken(token);
@@ -29,37 +29,27 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("user");
       setUser(null);
     }
-
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
-    } else {
-      localStorage.removeItem("refreshToken");
-    }
   }, []);
 
-  // ✅ Refresh access token (cookie first → fallback to localStorage refreshToken)
+  // ✅ Refresh access token (sirf cookies se)
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`${BASE_URL}/auth/refresh`, {
         method: "POST",
-        credentials: "include", // 👈 cookie try karega
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          refreshToken: localStorage.getItem("refreshToken") || null, // 👈 fallback
-        }),
+        credentials: "include", // 👈 cookie bhejega
       });
 
       if (!res.ok) {
-        setSession(null, null, null);
+        setSession(null, null);
         return false;
       }
 
       const data = await res.json();
-      // 👇 backend se access + refresh dono save karo
-      setSession(data.data.accessToken, data.data.user, data.data.refreshToken);
+      // 👇 backend se accessToken + user save karo
+      setSession(data.data.accessToken, data.data.user);
       return true;
     } catch {
-      setSession(null, null, null);
+      setSession(null, null);
       return false;
     } finally {
       setLoading(false);

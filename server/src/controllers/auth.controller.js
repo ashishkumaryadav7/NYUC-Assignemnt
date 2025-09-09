@@ -6,8 +6,9 @@ import { env } from '../config/env.js';
 
 const cookieOptions = {
   httpOnly: true,
-  sameSite: env.nodeEnv === 'production' ? 'none' : 'lax',
-  secure: env.nodeEnv === 'production'
+  secure: env.nodeEnv === 'production',  
+  sameSite: 'none',                    
+  domain: env.nodeEnv === 'production' ? '.onrender.com' : undefined,
 };
 
 export const signup = asyncHandler(async (req, res) => {

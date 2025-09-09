@@ -4,7 +4,7 @@ import BASE_URL from "../api/url";
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
-  // 1️⃣ Initialize state from localStorage
+  // ✅ State + localStorage fallback for accessToken & user
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem("accessToken"));
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
@@ -13,66 +13,51 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const isAuthenticated = !!accessToken;
 
-  // 2️⃣ Set session in state + localStorage
-  const setSession = useCallback((token, u, refreshToken) => {
+  // ✅ Set session: accessToken + user in state & localStorage
+  const setSession = useCallback((token, u) => {
     if (token) {
-      localStorage.setItem("accessToken", token);
       setAccessToken(token);
+      localStorage.setItem("accessToken", token);
     } else {
-      localStorage.removeItem("accessToken");
       setAccessToken(null);
+      localStorage.removeItem("accessToken");
     }
 
     if (u) {
-      localStorage.setItem("user", JSON.stringify(u));
       setUser(u);
+      localStorage.setItem("user", JSON.stringify(u));
     } else {
-      localStorage.removeItem("user");
       setUser(null);
+      localStorage.removeItem("user");
     }
-
-    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-    else localStorage.removeItem("refreshToken");
   }, []);
 
-  // 3️⃣ Refresh token: cookie first, fallback localStorage
+  // ✅ Refresh accessToken using cookie (refresh token stored securely)
   const refresh = useCallback(async () => {
     try {
-      // Try cookie-based refresh first
-      let res = await fetch(`${BASE_URL}/auth/refresh`, {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
         method: "POST",
-        credentials: "include", // cookie bhejega
+        credentials: "include", // 👈 cookie send karega
       });
 
-      // Fallback: localStorage refresh token
       if (!res.ok) {
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          setSession(null, null, null);
-          return false;
-        }
-
-        res = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
+        setSession(null, null);
+        return false;
       }
 
       const data = await res.json();
-
-      // Save accessToken + user + refreshToken
-      setSession(data.data.accessToken, data.data.user, data.data.refreshToken);
+      setSession(data.data.accessToken, data.data.user); // ✅ save access token + user info
       return true;
-    } catch {
-      setSession(null, null, null);
+    } catch (err) {
+      console.error("Refresh failed", err);
+      setSession(null, null);
       return false;
     } finally {
       setLoading(false);
     }
   }, [setSession]);
 
-  // 4️⃣ On mount: if no accessToken → refresh
+  // ✅ On mount: if no accessToken, try refresh
   useEffect(() => {
     if (!accessToken) {
       refresh();

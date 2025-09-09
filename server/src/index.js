@@ -14,17 +14,20 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+
+
 app.use(helmet());
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(cookieParser());
-
 app.use(
   cors({
     origin: env.clientOrigin,
     credentials: true
   })
 );
+app.use(express.json());
+app.use(cookieParser());
+
+
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/auth', authLimiter);

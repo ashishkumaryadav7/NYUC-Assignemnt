@@ -16,8 +16,8 @@ export async function apiFetch(path, options = {}, getAccessToken, refreshFn) {
   });
 
   if (res.status === 401 && refreshFn) {
-  // const ok = await refreshFn();
-    const ok = await refreshFn(sessionStorage.getItem('refreshToken'));
+  const ok = await refreshFn();
+    // const ok = await refreshFn(sessionStorage.getItem('refreshToken'));
   if (ok) {
     const newToken = getAccessToken?.();
     const retryHeaders = {
